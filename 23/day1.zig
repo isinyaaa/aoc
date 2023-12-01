@@ -12,71 +12,64 @@ const std = @import("std");
 //     }
 // };
 
-// fn isDigit(c: u8) bool {
-//     return switch (c) {
-//         '0'...'9' => true,
-//         else => false,
-//     };
-// }
-
-fn enumFromStr(comptime T: type, str: []const u8) !T {
+fn enumFromStr(comptime T: type, str: []const u8) ?T {
     inline for (@typeInfo(T).Enum.fields) |field| {
         if (std.mem.startsWith(u8, str, field.name))
             return @enumFromInt(field.value);
     }
-    return error.NoMatch;
+    return null;
 }
 
-const Digit = enum(u4) {
-    zero = 0,
-    one = 1,
-    two = 2,
-    three = 3,
-    four = 4,
-    five = 5,
-    six = 6,
-    seven = 7,
-    eight = 8,
-    nine = 9,
-    pub fn fromChar(c: u8) !Digit {
+const Digit = enum(u7) {
+    zero,
+    one,
+    two,
+    three,
+    four,
+    five,
+    six,
+    seven,
+    eight,
+    nine,
+    pub fn fromChar(c: u8) ?Digit {
         return switch (c) {
-            '0'...'9' => @enumFromInt(try std.fmt.parseInt(u4, &.{c}, 10)),
-            else => error.InvalidDigit,
+            '0'...'9' => @enumFromInt(c - '0'),
+            else => null,
         };
     }
-    pub fn fromStr(str: []const u8) !Digit {
-        return try enumFromStr(Digit, str);
+    pub fn fromStr(str: []const u8) ?Digit {
+        return enumFromStr(Digit, str);
     }
 };
 
 fn getBrokenNumFromLine(line: []const u8, spelled: bool) u7 {
     var number: u7 = undefined;
     for (0..line.len) |i| {
-        const digit = Digit.fromChar(line[i]) catch blk: {
-            if (!spelled)
-                continue;
-            break :blk Digit.fromStr(line[i..]) catch {
-                continue;
-            };
-        };
-
-        number = @as(u7, @intCast(@intFromEnum(digit))) * 10;
-        break;
+        if (Digit.fromChar(line[i])) |d| {
+            number = @intFromEnum(d) * 10;
+            break;
+        }
+        if (spelled) {
+            if (Digit.fromStr(line[i..])) |d| {
+                number = @intFromEnum(d) * 10;
+                break;
+            }
+        }
     }
 
     var i = line.len;
     while (i > 0) {
         i -= 1;
-        const digit = Digit.fromChar(line[i]) catch blk: {
-            if (!spelled or line.len - i < 3)
-                continue;
-            break :blk Digit.fromStr(line[i..]) catch {
-                continue;
-            };
-        };
-
-        number += @intCast(@intFromEnum(digit));
-        break;
+        if (Digit.fromChar(line[i])) |d| {
+            number += @intFromEnum(d);
+            break;
+        }
+        if (spelled and line.len - i > 2) {
+            if (Digit.fromStr(line[i..])) |d| {
+                number += @intFromEnum(d);
+                break;
+            }
+        }
     }
     return number;
 }
@@ -93,8 +86,6 @@ pub fn main() !void {
 
     var buffered = std.io.bufferedReader(file.reader());
     var reader = buffered.reader();
-
-    // var file = LineReader{.reader = reader};
 
     var sum: u32 = 0;
     var spelled_sum: u32 = 0;

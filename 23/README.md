@@ -44,6 +44,10 @@ Dumb python version where I try to solve both challenges at once was actually a 
 get right.
 Obviously performance doesn't even compare.
 
+Glad to see that dealing with optional types is quite similar to Python, with slightly clearer
+syntax (?)
+
+
 ### Notes
 
 - Allocator stuff doesn't seem that hard, but I don't get how you can avoid having some boilerplate
