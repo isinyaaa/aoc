@@ -12,11 +12,73 @@ const std = @import("std");
 //     }
 // };
 
-fn isDigit(c: u8) bool {
-    return switch (c) {
-        '0'...'9' => true,
-        else => false,
-    };
+// fn isDigit(c: u8) bool {
+//     return switch (c) {
+//         '0'...'9' => true,
+//         else => false,
+//     };
+// }
+
+fn enumFromStr(comptime T: type, str: []const u8) !T {
+    inline for (@typeInfo(T).Enum.fields) |field| {
+        if (std.mem.startsWith(u8, str, field.name))
+            return @enumFromInt(field.value);
+    }
+    return error.NoMatch;
+}
+
+const Digit = enum(u4) {
+    zero = 0,
+    one = 1,
+    two = 2,
+    three = 3,
+    four = 4,
+    five = 5,
+    six = 6,
+    seven = 7,
+    eight = 8,
+    nine = 9,
+    pub fn fromChar(c: u8) !Digit {
+        return switch (c) {
+            '0'...'9' => @enumFromInt(try std.fmt.parseInt(u4, &.{c}, 10)),
+            else => error.InvalidDigit,
+        };
+    }
+    pub fn fromStr(str: []const u8) !Digit {
+        return try enumFromStr(Digit, str);
+    }
+};
+
+fn getBrokenNumFromLine(line: []const u8, spelled: bool) u7 {
+    var number: u7 = undefined;
+    for (0..line.len) |i| {
+        const digit = Digit.fromChar(line[i]) catch blk: {
+            if (!spelled)
+                continue;
+            break :blk Digit.fromStr(line[i..]) catch {
+                continue;
+            };
+        };
+
+        number = @as(u7, @intCast(@intFromEnum(digit))) * 10;
+        break;
+    }
+
+    var i = line.len;
+    while (i > 0) {
+        i -= 1;
+        const digit = Digit.fromChar(line[i]) catch blk: {
+            if (!spelled or line.len - i < 3)
+                continue;
+            break :blk Digit.fromStr(line[i..]) catch {
+                continue;
+            };
+        };
+
+        number += @intCast(@intFromEnum(digit));
+        break;
+    }
+    return number;
 }
 
 pub fn main() !void {
@@ -35,6 +97,7 @@ pub fn main() !void {
     // var file = LineReader{.reader = reader};
 
     var sum: u32 = 0;
+    var spelled_sum: u32 = 0;
 
     while (true) {
         arr.clearRetainingCapacity();
@@ -43,26 +106,15 @@ pub fn main() !void {
             else => return err,
         };
         const line = arr.items;
-        var digits: [2]u8 = undefined;
-        for (line) |char| {
-            if (isDigit(char)) {
-                digits[0] = char;
-                break;
-            }
-        }
 
-        var i = line.len;
-        while (i > 0) {
-            i -= 1;
-            const char = line[i];
-            if (isDigit(char)) {
-                digits[1] = char;
-                break;
-            }
-        }
-        sum += try std.fmt.parseInt(u7, &digits, 10);
+        // part one
+        sum += getBrokenNumFromLine(line, false);
+
+        // part two
+        spelled_sum += getBrokenNumFromLine(line, true);
     }
 
     const stdout = std.io.getStdOut();
-    try stdout.writer().print("xxx {d}\n", .{sum});
+    try stdout.writer().print("Sum of literal digits: {d}\n", .{sum});
+    try stdout.writer().print("Sum with spelled digits: {d}\n", .{spelled_sum});
 }
