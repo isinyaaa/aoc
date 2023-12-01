@@ -40,6 +40,10 @@ const data = @embedFile("day1.in")
 
 Then `std.mem.tokenizeAny` that to get an iterator and you're golden.
 
+Dumb python version where I try to solve both challenges at once was actually a kind of a pain to
+get right.
+Obviously performance doesn't even compare.
+
 ### Notes
 
 - Allocator stuff doesn't seem that hard, but I don't get how you can avoid having some boilerplate
