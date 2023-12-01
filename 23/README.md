@@ -47,6 +47,8 @@ Obviously performance doesn't even compare.
 Glad to see that dealing with optional types is quite similar to Python, with slightly clearer
 syntax (?)
 
+Changes in the code made no real impact in performance, apart from `ArrayList.clearAndFree` being
+dramatically slower than `.clearRetainingCapacity`, which is sad because I wanted to type less...
 
 ### Notes
 

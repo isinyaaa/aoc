@@ -42,38 +42,6 @@ const Digit = enum(u7) {
     }
 };
 
-fn getBrokenNumFromLine(line: []const u8, spelled: bool) u7 {
-    var number: u7 = undefined;
-    for (0..line.len) |i| {
-        if (Digit.fromChar(line[i])) |d| {
-            number = @intFromEnum(d) * 10;
-            break;
-        }
-        if (spelled) {
-            if (Digit.fromStr(line[i..])) |d| {
-                number = @intFromEnum(d) * 10;
-                break;
-            }
-        }
-    }
-
-    var i = line.len;
-    while (i > 0) {
-        i -= 1;
-        if (Digit.fromChar(line[i])) |d| {
-            number += @intFromEnum(d);
-            break;
-        }
-        if (spelled and line.len - i > 2) {
-            if (Digit.fromStr(line[i..])) |d| {
-                number += @intFromEnum(d);
-                break;
-            }
-        }
-    }
-    return number;
-}
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -98,11 +66,41 @@ pub fn main() !void {
         };
         const line = arr.items;
 
-        // part one
-        sum += getBrokenNumFromLine(line, false);
+        var found_spelled = false;
+        for (0..line.len) |i| {
+            if (Digit.fromChar(line[i])) |d| {
+                const number = @intFromEnum(d) * 10;
+                sum += number;
+                if (!found_spelled) {
+                    spelled_sum += number;
+                }
+                break;
+            } else if (!found_spelled) {
+                if (Digit.fromStr(line[i..])) |d| {
+                    found_spelled = true;
+                    spelled_sum += @intFromEnum(d) * 10;
+                }
+            }
+        }
 
-        // part two
-        spelled_sum += getBrokenNumFromLine(line, true);
+        found_spelled = false;
+        var i: usize = line.len;
+        while (i > 0) {
+            i -= 1;
+            if (Digit.fromChar(line[i])) |d| {
+                const number = @intFromEnum(d);
+                sum += number;
+                if (!found_spelled) {
+                    spelled_sum += number;
+                }
+                break;
+            } else if (line.len - i > 2 and !found_spelled) {
+                if (Digit.fromStr(line[i..])) |d| {
+                    found_spelled = true;
+                    spelled_sum += @intFromEnum(d);
+                }
+            }
+        }
     }
 
     const stdout = std.io.getStdOut();
