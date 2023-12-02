@@ -50,6 +50,18 @@ syntax (?)
 Changes in the code made no real impact in performance, apart from `ArrayList.clearAndFree` being
 dramatically slower than `.clearRetainingCapacity`, which is sad because I wanted to type less...
 
+## Day 2
+
+Calculating the set power of struct fields was the real challenge here, because I wanted something
+that'd capture our assertions about the field types, while maintaining the flexibility of having
+arbitrarily many colored balls in our game.
+
+Using comptime to set the max proved very inefficient, so that leads me to wonder if calculating
+set power directly wouldn't also help.
+
+TODO:
+- look at "named tuples" or whatever they're called
+
 ### Notes
 
 - Allocator stuff doesn't seem that hard, but I don't get how you can avoid having some boilerplate
@@ -59,3 +71,5 @@ dramatically slower than `.clearRetainingCapacity`, which is sad because I wante
 
 - What's the difference between `ArrayList.{clearAndFree,clearRetainingCapacity}`? Why is the
 latter 5x faster?
+
+- What's the better way of asserting a type in comptime?
