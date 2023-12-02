@@ -89,6 +89,14 @@ more than one symbol, so it was actually possible to get part numbers by checkin
 Finally got to use some regex to make my life easier, but I didn't realize `re.search` doesn't
 return all matches on the line...
 
+I won the Ziguana at last, but I'm also more sure than ever that memory is a weird thing.
+Would never have guessed that I could simply use my trusty gpa to copy an array, which is quite
+handy, but I don't get if I ever have to free that.
+Also tried to use `ArrayList.toOwnedSlice()`, but haven't measured performance for that yet.
+I think it'd be interesting to try using the same scanline idea for getting part numbers, but I'm
+too tired to try that now.
+BTW it's definitely not the best variable naming ever.
+
 ### Notes
 
 - Allocator stuff doesn't seem that hard, but I don't get how you can avoid having some boilerplate
