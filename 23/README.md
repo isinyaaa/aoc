@@ -69,7 +69,7 @@ in terms of performance, but I still haven't looked further.
 
 Calculating the set power of struct fields was the real challenge here, because I wanted something
 that'd capture our assertions about the field types, while maintaining the flexibility of having
-arbitrarily many colored balls in our game.
+arbitrarily many colored cubes in our game.
 
 Using comptime to set the max proved very inefficient, so that leads me to wonder if calculating
 set power directly wouldn't also help.

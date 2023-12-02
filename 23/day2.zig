@@ -21,9 +21,9 @@ const Game = struct {
     blue: u8 = 0,
     green: u8 = 0,
     pub fn newRoundFromStr(self: *Game, str: []const u8) void {
-        var ball = std.mem.splitAny(u8, str, " ");
-        const number = std.fmt.parseInt(u8, ball.next().?, 10) catch unreachable;
-        switch (ball.next().?[0]) {
+        var cube = std.mem.splitAny(u8, str, " ");
+        const number = std.fmt.parseInt(u8, cube.next().?, 10) catch unreachable;
+        switch (cube.next().?[0]) {
             'r' => {
                 self.red = @max(self.red, number);
             },
