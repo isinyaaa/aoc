@@ -50,12 +50,7 @@ fn help(name: []const u8) !void {
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-    var buffer = std.ArrayList(u8).init(allocator);
-    defer buffer.deinit();
-
-    var args = try std.process.argsWithAllocator(allocator);
+    var args = std.process.args();
     const name = args.next().?;
 
     const red = std.fmt.parseInt(u8, args.next().?, 10) catch {
@@ -70,17 +65,17 @@ pub fn main() !void {
 
     const limit = Game{ .red = red, .green = green, .blue = blue };
 
-    const reader = std.io.getStdIn().reader();
+    var file = try std.fs.cwd().openFile("day2.in", .{});
+    defer file.close();
+
+    var buffered = std.io.bufferedReader(file.reader());
+    var reader = buffered.reader();
+
+    var buf: [100]u8 = undefined;
     var id: usize = 1;
     var id_sum: u32 = 0;
     var set_power_sum: u32 = 0;
-    while (true) {
-        reader.streamUntilDelimiter(buffer.writer(), '\n', null) catch |err| switch (err) {
-            error.EndOfStream => break,
-            else => return err,
-        };
-        const line = buffer.items;
-
+    while (try reader.readUntilDelimiterOrEof(&buf, '\n')) |line| {
         var rounds = std.mem.tokenizeAny(u8, line, ":;,");
         // we get the game number from id
         _ = rounds.next();
@@ -95,7 +90,6 @@ pub fn main() !void {
         if (game.isPossible(limit))
             id_sum += @as(u32, @intCast(id));
         id += 1;
-        buffer.clearRetainingCapacity();
     }
 
     var stdout = std.io.getStdOut();

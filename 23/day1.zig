@@ -43,12 +43,6 @@ const Digit = enum(u7) {
 };
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-
-    var arr = std.ArrayList(u8).init(allocator);
-    defer arr.deinit();
-
     var file = try std.fs.cwd().openFile("day1.in", .{});
     defer file.close();
 
@@ -58,14 +52,8 @@ pub fn main() !void {
     var sum: u32 = 0;
     var spelled_sum: u32 = 0;
 
-    while (true) {
-        arr.clearRetainingCapacity();
-        reader.streamUntilDelimiter(arr.writer(), '\n', null) catch |err| switch (err) {
-            error.EndOfStream => break,
-            else => return err,
-        };
-        const line = arr.items;
-
+    var buf: [100]u8 = undefined;
+    while (try reader.readUntilDelimiterOrEof(&buf, '\n')) |line| {
         var found_spelled = false;
         for (0..line.len) |i| {
             if (Digit.fromChar(line[i])) |d| {

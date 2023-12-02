@@ -49,6 +49,21 @@ syntax (?)
 
 Changes in the code made no real impact in performance, apart from `ArrayList.clearAndFree` being
 dramatically slower than `.clearRetainingCapacity`, which is sad because I wanted to type less...
+Now, why is it slower? I hear you ask. Well that's because [`clearAndFree` is actually freeing
+memory](https://ziglang.org/documentation/master/std/#A;std:ArrayList.clearAndFree), [while
+`clearRetainingCapacity`](https://ziglang.org/documentation/master/std/#A;std:ArrayList.clearRetainingCapacity)...
+Well, it's obviously doing something better. And it's actually quite similar to doing
+
+```zig
+for (items) |item| {
+    var arr = std.ArrayList(u8).init(allocator);
+    // defer arr.deinit()
+
+    ...
+}
+```
+
+in terms of performance, but I still haven't looked further.
 
 ## Day 2
 
@@ -59,6 +74,9 @@ arbitrarily many colored balls in our game.
 Using comptime to set the max proved very inefficient, so that leads me to wonder if calculating
 set power directly wouldn't also help.
 
+Of course using a small buffer on the stack would be better, and getting from stdin seems to have a
+BIG performance penalty too.
+
 TODO:
 - look at "named tuples" or whatever they're called
 
@@ -68,8 +86,5 @@ TODO:
   to deal with them, or at least avoid having to pass them to functions.
 
 - Why is a `bufferedReader` so much better?
-
-- What's the difference between `ArrayList.{clearAndFree,clearRetainingCapacity}`? Why is the
-latter 5x faster?
 
 - What's the better way of asserting a type in comptime?
