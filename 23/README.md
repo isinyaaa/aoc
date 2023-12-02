@@ -80,11 +80,18 @@ BIG performance penalty too.
 TODO:
 - look at "named tuples" or whatever they're called
 
+# Day 3
+
+Got a bit lost when trying to deal with simple memory management in Zig, so I decided I try doing a
+python version first.
+This wasn't an easy puzzle, but it also didn't take much after figuring out that no number touches
+more than one symbol, so it was actually possible to get part numbers by checking around symbols.
+Finally got to use some regex to make my life easier, but I didn't realize `re.search` doesn't
+return all matches on the line...
+
 ### Notes
 
 - Allocator stuff doesn't seem that hard, but I don't get how you can avoid having some boilerplate
   to deal with them, or at least avoid having to pass them to functions.
-
-- Why is a `bufferedReader` so much better?
 
 - What's the better way of asserting a type in comptime?
