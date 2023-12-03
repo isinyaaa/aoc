@@ -68,8 +68,13 @@ set power directly wouldn't also help.
 Of course using a small buffer on the stack would be better, and getting from stdin seems to have a
 BIG performance penalty too.
 
-TODO:
-- look at "named tuples" or whatever they're called
+Got a performance boost by simply taking out some comptime to avoid needless abstraction.
+Simply using an array for the cubes was obvious, but I also wanted an API that guaranteed accesses
+correspond to the expected enum (does that make sense? lol).
+So I'm thinking of using comptime to generate a type that intertwines the user's enum for the game
+cube colors and also provides a size, then we abstract every operation to deal with N cubes of a
+rainbow of colors and everyone is happy.
+And of course I'm only pondering that because I want to see what comptime is capable of.
 
 ## Day 3
 

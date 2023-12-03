@@ -1,46 +1,34 @@
 const std = @import("std");
 
-fn structSetPower(comptime T: type, s: *const T) u32 {
-    var power: u32 = 1;
-    inline for (@typeInfo(T).Struct.fields) |field| {
-        power *= switch (@typeInfo(field.type)) {
-            .ComptimeInt, .Int => blk: {
-                const val = @field(s, field.name);
-                if (val == 0)
-                    break :blk 1;
-                break :blk @as(u32, @intCast(val));
-            },
+const Color = enum(u8) {
+    red,
+    green,
+    blue,
+    fn fromChar(char: u8) Color {
+        return switch (char) {
+            'r' => Color.red,
+            'g' => Color.green,
+            'b' => Color.blue,
             else => unreachable,
         };
     }
-    return power;
-}
+};
 
 const Game = struct {
-    red: u8 = 0,
-    blue: u8 = 0,
-    green: u8 = 0,
-    pub fn newRoundFromStr(self: *Game, str: []const u8) void {
-        var cube = std.mem.splitAny(u8, str, " ");
-        const number = std.fmt.parseInt(u8, cube.next().?, 10) catch unreachable;
-        switch (cube.next().?[0]) {
-            'r' => {
-                self.red = @max(self.red, number);
-            },
-            'g' => {
-                self.green = @max(self.green, number);
-            },
-            'b' => {
-                self.blue = @max(self.blue, number);
-            },
-            else => unreachable,
+    cubes: [3]u8,
+    pub fn isPossible(self: Game, limit: [3]u8) bool {
+        for (0..self.cubes.len) |i| {
+            if (self.cubes[i] > limit[i])
+                return false;
         }
+        return true;
     }
-    pub fn isPossible(self: Game, limit: Game) bool {
-        return self.red <= limit.red and self.green <= limit.green and self.blue <= limit.blue;
-    }
-    pub fn setPower(self: Game) u32 {
-        return structSetPower(Game, &self);
+    fn setPower(self: *const Game) u32 {
+        var power: u32 = 1;
+        for (self.cubes) |cube| {
+            power *= cube;
+        }
+        return power;
     }
 };
 
@@ -63,7 +51,7 @@ pub fn main() !void {
         return help(name);
     };
 
-    const limit = Game{ .red = red, .green = green, .blue = blue };
+    const limit = [_]u8{ red, green, blue };
 
     var file = try std.fs.cwd().openFile("day2.in", .{});
     defer file.close();
@@ -76,13 +64,22 @@ pub fn main() !void {
     var id_sum: u32 = 0;
     var set_power_sum: u32 = 0;
     while (try reader.readUntilDelimiterOrEof(&buf, '\n')) |line| {
-        var rounds = std.mem.tokenizeAny(u8, line, ":;,");
+        var rounds = std.mem.tokenizeAny(u8, line, ":;");
         // we get the game number from id
         _ = rounds.next();
 
-        var game = Game{};
+        var game = Game{ .cubes = undefined };
         while (rounds.next()) |round| {
-            game.newRoundFromStr(std.mem.trim(u8, round, " "));
+            // std.debug.print("Round: {s}\n", .{round});
+            var entries = std.mem.tokenizeAny(u8, round, ",");
+            while (entries.next()) |entry| {
+                // std.debug.print("Entry: {s}\n", .{entry});
+                var parts = std.mem.tokenizeAny(u8, entry, " ");
+                const number = std.fmt.parseInt(u8, parts.next().?, 10) catch unreachable;
+                const color = Color.fromChar(parts.next().?[0]);
+                const ci = @intFromEnum(color);
+                game.cubes[ci] = @max(number, game.cubes[ci]);
+            }
         }
 
         set_power_sum += game.setPower();
