@@ -10,14 +10,10 @@ pub fn main() !void {
     var buffered = std.io.bufferedReader(file.reader());
     var reader = buffered.reader();
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-
     var score_sum: u32 = 0;
     var total_cards: usize = 0;
     var winning: [10]u7 = undefined;
-    var copies = std.ArrayList(usize).init(allocator);
-    defer copies.deinit();
+    var copies = [_]u32{1} ** 10;
 
     var i: usize = 0;
     while (try reader.readUntilDelimiterOrEof(&buf, '\n')) |line| {
@@ -25,11 +21,6 @@ pub fn main() !void {
         var parts = std.mem.tokenizeAny(u8, line, ":|");
         // we don't care about the first part
         _ = parts.next();
-
-        // for each card, you get at most 10 new cards
-        while (copies.items.len <= i + 10) {
-            try copies.append(1);
-        }
 
         var winning_iter = std.mem.tokenizeAny(u8, parts.next().?, " ");
         var last: usize = 0;
@@ -39,7 +30,8 @@ pub fn main() !void {
             last += 1;
         }
 
-        const count = copies.items[i];
+        const count = copies[i % 10];
+        copies[i % 10] = 1;
         total_cards += count;
 
         last = i + 1;
@@ -55,7 +47,7 @@ pub fn main() !void {
                     } else {
                         score *= 2;
                     }
-                    copies.items[last] += count;
+                    copies[last % 10] += count;
                     // std.debug.print("increased card {d} to {d}\n", .{ last + 1, copies.items[last] });
                     last += 1;
                 }

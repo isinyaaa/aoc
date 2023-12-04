@@ -101,6 +101,10 @@ seemed more practical but we could definitely get away with fixed-size buffers.
 Maybe I'll try that later.
 Either way this one is __already__ blazingly fast (~400us on the M1 🔥).
 
+The answer, of course, always lies in group theory.
+Joking aside, I should probably make better benchmarks, but coding something to generate inputs is
+a little beyond my scope, and I'm already spending too much time on these.
+
 ## Notes
 
 - Allocator stuff doesn't seem that hard, but I don't get how you can avoid having some boilerplate
