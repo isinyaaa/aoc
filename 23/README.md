@@ -93,7 +93,15 @@ I think it'd be interesting to try using the same scanline idea for getting part
 too tired to try that now.
 BTW it's definitely not the best variable naming ever.
 
-### Notes
+## Day 4
+
+Nothing too complex today, but I wish I could use a queue for that.
+There seems to be no way of simply updating a value on the queue by its index, so an ArrayList
+seemed more practical but we could definitely get away with fixed-size buffers.
+Maybe I'll try that later.
+Either way this one is __already__ blazingly fast (~400us on the M1 🔥).
+
+## Notes
 
 - Allocator stuff doesn't seem that hard, but I don't get how you can avoid having some boilerplate
   to deal with them, or at least avoid having to pass them to functions.
