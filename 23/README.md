@@ -47,23 +47,14 @@ Obviously performance doesn't even compare.
 Glad to see that dealing with optional types is quite similar to Python, with slightly clearer
 syntax (?)
 
-Changes in the code made no real impact in performance, apart from `ArrayList.clearAndFree` being
-dramatically slower than `.clearRetainingCapacity`, which is sad because I wanted to type less...
-Now, why is it slower? I hear you ask. Well that's because [`clearAndFree` is actually freeing
-memory](https://ziglang.org/documentation/master/std/#A;std:ArrayList.clearAndFree), [while
-`clearRetainingCapacity`](https://ziglang.org/documentation/master/std/#A;std:ArrayList.clearRetainingCapacity)...
-Well, it's obviously doing something better. And it's actually quite similar to doing
-
-```zig
-for (items) |item| {
-    var arr = std.ArrayList(u8).init(allocator);
-    // defer arr.deinit()
-
-    ...
-}
-```
-
-in terms of performance, but I still haven't looked further.
+Something to note is that [`ArrayList.clearAndFree`](https://ziglang.org/documentation/master/std/#A;std:ArrayList.clearAndFree) being
+dramatically slower than [`.clearRetainingCapacity`](https://ziglang.org/documentation/master/std/#A;std:ArrayList.clearRetainingCapacity), which is sad because I wanted to type less...
+Now, why is it slower? I hear you ask. Well that's easy, just look at the source code on the
+links above.
+If you're too lazy, `.clearRetainingCapacity` simply won't free anything, you just reset the
+capacity so that you allocate new memory.
+But now do we actually have a leak? I don't really care, but it could even make some memory
+management simpler (see `.toOwnedSlice()` on day 3).
 
 ## Day 2
 
@@ -80,7 +71,7 @@ BIG performance penalty too.
 TODO:
 - look at "named tuples" or whatever they're called
 
-# Day 3
+## Day 3
 
 Got a bit lost when trying to deal with simple memory management in Zig, so I decided I try doing a
 python version first.
