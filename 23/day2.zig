@@ -71,7 +71,7 @@ pub fn main() !void {
     var buffered = std.io.bufferedReader(file.reader());
     var reader = buffered.reader();
 
-    var buf: [100]u8 = undefined;
+    var buf: [200]u8 = undefined;
     var id: usize = 1;
     var id_sum: u32 = 0;
     var set_power_sum: u32 = 0;
