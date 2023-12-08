@@ -14,15 +14,15 @@ const Map = struct {
 };
 
 const Range = struct {
-    offset: u64,
-    len: u64,
-    fn cmp(ctx: void, a: Range, b: Range) bool {
-        _ = ctx;
-        if (a.offset < b.offset) {
-            return true;
-        } else {
-            return false;
+    start: u64,
+    end: u64,
+    fn intersect(self: Range, other: Range) ?Range {
+        const start = @max(self.start, other.start);
+        const end = @min(self.end, other.end);
+        if (start < end) {
+            return Range{ .start = start, .end = end };
         }
+        return null;
     }
 };
 
@@ -40,8 +40,11 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    var seeds = std.ArrayList(Range).init(allocator);
-    defer seeds.deinit();
+    var single_seeds = std.ArrayList(u64).init(allocator);
+    defer single_seeds.deinit();
+
+    var ranged_seeds = std.ArrayList(Range).init(allocator);
+    defer ranged_seeds.deinit();
 
     var raw_seeds_iter = std.mem.tokenizeAny(u8, seeds_line, " ");
     // skip "seeds:"
@@ -50,122 +53,78 @@ pub fn main() !void {
     while (raw_seeds_iter.next()) |raw_seed| {
         const seed = try std.fmt.parseInt(u64, raw_seed, 10);
         const count = try std.fmt.parseInt(u64, raw_seeds_iter.next().?, 10);
-        std.debug.print("seed: {d}, count: {d}\n", .{ seed, count });
-        try seeds.append(.{ .offset = seed, .len = count });
+        try single_seeds.append(seed);
+        // pretend count is another seed for part 1
+        try single_seeds.append(count);
+        try ranged_seeds.append(.{ .start = seed, .end = seed + count - 1 });
     }
 
     // skip blank and next header
     _ = try reader.readUntilDelimiterOrEof(&buf, '\n');
     _ = try reader.readUntilDelimiterOrEof(&buf, '\n');
-    // std.debug.print("{s}", .{buf});
 
-    var maps = std.ArrayList(Map).init(allocator);
-    defer maps.deinit();
+    var maps_per_section: [7][]Map = undefined;
 
-    var section: usize = 1;
+    var section_maps: [100]Map = undefined;
+
+    var last_map: u8 = 0;
+    var section_number: u4 = 0;
     while (try reader.readUntilDelimiterOrEof(&buf, '\n')) |line| {
         if (line.len == 0) {
-            std.debug.print("section: {d}\n", .{section});
-            // const sorted = try allocator.dupe(Range, seeds.items);
-            // std.sort.heap(Range, sorted, {}, Range.cmp);
-            try seeds.ensureTotalCapacity(seeds.items.len + 100);
-            var partitions: usize = seeds.items.len;
-            var i: usize = 0;
-            while (i < partitions) : (i += 1) {
-                var range = &seeds.items[i];
-                for (maps.items) |map| {
-                    // offset < src < offset + len
-                    if (range.offset < map.src and map.src < range.offset + range.len) {
-                        std.debug.print("map: {d}-{d} : {d}-{d}\n", .{ map.src, map.src + map.len - 1, map.dest, map.dest + map.len - 1 });
-                        std.debug.print("offset: {d}-{d}\n", .{ range.offset, range.offset + range.len - 1 });
-                        // partition from offset to src
-                        const partition_base = range.offset;
-                        const partition_size = map.src - partition_base;
-                        std.debug.print("case C: partitioning seeds: {d}-{d}\n", .{ partition_base, partition_base + partition_size - 1 });
-                        seeds.appendAssumeCapacity(.{ .offset = partition_base, .len = partition_size });
-                        partitions += 1;
-                        range.offset = map.src;
-                        range.len -= partition_size;
-                    }
-                    // src < offset < src + len
-                    if (map.src <= range.offset and range.offset < map.src + map.len) {
-                        std.debug.print("map: {d}-{d} : {d}-{d}\n", .{ map.src, map.src + map.len - 1, map.dest, map.dest + map.len - 1 });
-                        std.debug.print("offset: {d}-{d}\n", .{ range.offset, range.offset + range.len - 1 });
-                        // range > map
-                        if (range.offset + range.len > map.src + map.len) {
-                            // partition from map.src + map.len to range.offset + range.len
-                            const partition_base = map.src + map.len;
-                            const partition_size = (range.offset + range.len) - partition_base;
-                            std.debug.print("case B: partitioning seeds: {d}-{d}\n", .{ partition_base, partition_base + partition_size - 1 });
-                            seeds.appendAssumeCapacity(.{ .offset = partition_base, .len = partition_size });
-                            partitions += 1;
-                            range.len = partition_base - range.offset;
-                        }
-                        const new_dest = range.offset + map.dest - map.src;
-                        std.debug.print("mapping seeds: {d}-{d} to {d}-{d}\n", .{ range.offset, range.offset + range.len - 1, new_dest, new_dest + range.len - 1 });
-                        range.offset = new_dest;
-                        break;
-                    }
-                }
-            }
-            section += 1;
-            maps.clearRetainingCapacity();
+            maps_per_section[section_number] = try allocator.dupe(Map, section_maps[0..last_map]);
+            section_number += 1;
+            last_map = 0;
             // skip the header on the next line
             _ = try reader.readUntilDelimiterOrEof(&buf, '\n');
-            // std.debug.print("{s}", .{buf});
         } else {
-            try maps.append(try Map.fromStr(line));
+            section_maps[last_map] = try Map.fromStr(line);
+            last_map += 1;
         }
-    }
+    } else maps_per_section[section_number] = try allocator.dupe(Map, section_maps[0..last_map]);
 
-    try seeds.ensureTotalCapacity(seeds.items.len + 100);
-    var partitions: usize = seeds.items.len;
-    var i: usize = 0;
-    while (i < partitions) : (i += 1) {
-        var range = &seeds.items[i];
-        for (maps.items) |map| {
-            // offset < src < offset + len
-            if (range.offset < map.src and map.src < range.offset + range.len) {
-                std.debug.print("map: {d}-{d} : {d}-{d}\n", .{ map.src, map.src + map.len - 1, map.dest, map.dest + map.len - 1 });
-                std.debug.print("offset: {d}-{d}\n", .{ range.offset, range.offset + range.len - 1 });
-                // partition from offset to src
-                const partition_base = range.offset;
-                const partition_size = map.src - partition_base;
-                std.debug.print("case C: partitioning seeds: {d}-{d}\n", .{ partition_base, partition_base + partition_size - 1 });
-                seeds.appendAssumeCapacity(.{ .offset = partition_base, .len = partition_size });
-                partitions += 1;
-                range.offset = map.src;
-                range.len -= partition_size;
-            }
-            // src < offset < src + len
-            if (map.src <= range.offset and range.offset < map.src + map.len) {
-                std.debug.print("map: {d}-{d} : {d}-{d}\n", .{ map.src, map.src + map.len - 1, map.dest, map.dest + map.len - 1 });
-                std.debug.print("offset: {d}-{d}\n", .{ range.offset, range.offset + range.len - 1 });
-                // range > map
-                if (range.offset + range.len > map.src + map.len) {
-                    // partition from map.src + map.len to range.offset + range.len
-                    const partition_base = map.src + map.len;
-                    const partition_size = (range.offset + range.len) - partition_base;
-                    std.debug.print("case B: partitioning seeds: {d}-{d}\n", .{ partition_base, partition_base + partition_size - 1 });
-                    seeds.appendAssumeCapacity(.{ .offset = partition_base, .len = partition_size });
-                    partitions += 1;
-                    range.len = partition_base - range.offset;
+    for (maps_per_section) |maps| {
+        for (single_seeds.items) |*seed| {
+            for (maps) |map| {
+                if (map.src <= seed.* and seed.* <= map.src + map.len - 1) {
+                    seed.* = seed.* + map.dest - map.src;
+                    break;
                 }
-                const new_dest = range.offset + map.dest - map.src;
-                std.debug.print("mapping seeds: {d}-{d} to {d}-{d}\n", .{ range.offset, range.offset + range.len - 1, new_dest, new_dest + range.len - 1 });
-                range.offset = new_dest;
-                break;
+            }
+        }
+        try ranged_seeds.ensureTotalCapacity(ranged_seeds.items.len + 100);
+        var i: usize = 0;
+        while (i < ranged_seeds.items.len) : (i += 1) {
+            var range = &ranged_seeds.items[i];
+            for (maps) |map| {
+                if (range.intersect(Range{ .start = map.src, .end = map.src + map.len - 1 })) |inter| {
+                    if (inter.start > range.start) {
+                        ranged_seeds.appendAssumeCapacity(.{ .start = range.start, .end = inter.start - 1 });
+                        range.start = inter.start;
+                    } else if (inter.end < range.end) {
+                        ranged_seeds.appendAssumeCapacity(.{ .start = inter.end + 1, .end = range.end });
+                        range.end = inter.end;
+                    }
+                    range.start = range.start + map.dest - map.src;
+                    range.end = range.end + map.dest - map.src;
+                    break;
+                }
             }
         }
     }
 
-    var lowest = seeds.items[0].offset;
-    for (seeds.items) |seed| {
-        std.debug.print("seed: {any}\n", .{seed});
-        if (seed.offset < lowest)
-            lowest = seed.offset;
+    var lowest_seed = single_seeds.items[0];
+    for (single_seeds.items) |seed| {
+        if (seed < lowest_seed)
+            lowest_seed = seed;
+    }
+
+    var lowest_range = ranged_seeds.items[0].start;
+    for (ranged_seeds.items) |seed| {
+        if (seed.start < lowest_range)
+            lowest_range = seed.start;
     }
 
     var stdout = std.io.getStdOut();
-    try stdout.writer().print("{d}\n", .{lowest});
+    try stdout.writer().print("{d}\n", .{lowest_seed});
+    try stdout.writer().print("{d}\n", .{lowest_range});
 }

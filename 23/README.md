@@ -105,6 +105,20 @@ The answer, of course, always lies in group theory.
 Joking aside, I should probably make better benchmarks, but coding something to generate inputs is
 a little beyond my scope, and I'm already spending too much time on these.
 
+## Day 5
+
+While a simple brute-force was enough for part 1, part 2 wasn't as forgiving.
+Appending to a list while iterating over it was the most excruciating part of the exercise, and it also took me a while
+to realize that `ArrayList.items` is, of course, a static slice, so we have to keep track of the latest length at all
+times.
+
+Got much simpler code using ranges instead of offset + length, which is kinda obvious in retrospect, but it's too easy
+to persist on poor ideas when you're in a rush to finish...
+It's also faster now!
+Even with solutions for both parts running together, the final version is 5x faster than the previous one solving only
+part 2.
+What a happy ending :).
+
 ## Notes
 
 - Allocator stuff doesn't seem that hard, but I don't get how you can avoid having some boilerplate
