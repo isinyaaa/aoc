@@ -105,6 +105,8 @@ The answer, of course, always lies in group theory.
 Joking aside, I should probably make better benchmarks, but coding something to generate inputs is
 a little beyond my scope, and I'm already spending too much time on these.
 
+## Day 5
+
 ## Notes
 
 - Allocator stuff doesn't seem that hard, but I don't get how you can avoid having some boilerplate
