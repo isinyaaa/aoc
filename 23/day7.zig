@@ -34,10 +34,14 @@ const Card = union(enum) {
         };
         return Card{ .value = value };
     }
-    pub fn getValue(self: Card) u4 {
+    pub fn getValue(self: Card, with_joker: bool) u4 {
         return switch (self) {
             .value => self.value,
-            .joker => 11,
+            .joker => blk: {
+                if (with_joker)
+                    break :blk 1;
+                break :blk 11;
+            },
         };
     }
 };
@@ -50,16 +54,35 @@ const HandType = enum(u3) {
     full_house,
     four_of_a_kind,
     five_of_a_kind,
-    pub fn fromCards(cards: []const Card) HandType {
+    pub fn fromCards(cards: []const Card, with_joker: bool) HandType {
         var max = [_]u3{1} ** 4;
         var counted = [_]bool{false} ** 5;
+        var joker: u3 = 0;
         for (cards[0..4], 0..) |c, i| {
             if (counted[i])
                 continue;
-            const v = c.getValue();
+            if (with_joker) switch (c) {
+                .joker => {
+                    joker += 1;
+                    continue;
+                },
+                else => {},
+            };
+            const v = c.getValue(false);
             var j = i + 1;
             while (j < 5) : (j += 1) {
-                if (v == cards[j].getValue()) {
+                if (counted[j])
+                    continue;
+                if (with_joker) switch (cards[j]) {
+                    .joker => {
+                        joker += 1;
+                        counted[j] = true;
+                        continue;
+                    },
+                    else => {},
+                };
+
+                if (v == cards[j].getValue(false)) {
                     max[i] += 1;
                     counted[j] = true;
                 }
@@ -68,6 +91,8 @@ const HandType = enum(u3) {
 
         std.mem.sort(u3, &max, {}, std.sort.desc(u3));
         std.debug.print("{any}\n", .{max});
+
+        max[0] += joker;
 
         switch (max[0]) {
             5 => return .five_of_a_kind,
@@ -94,24 +119,31 @@ const HandType = enum(u3) {
 
 const Hand = struct {
     cards: []Card,
-    handType: HandType,
+    hand_type: HandType,
+    hand_type_with_joker: HandType,
 };
 
 const Play = struct {
     hand: Hand,
     bid: u10,
-    pub fn cmp(ctx: void, a: Play, b: Play) bool {
-        _ = ctx;
-        const ta = @intFromEnum(a.hand.handType);
-        const tb = @intFromEnum(b.hand.handType);
+    pub fn cmp(with_joker: bool, a: Play, b: Play) bool {
+        var ta: u3 = undefined;
+        var tb: u3 = undefined;
+        if (with_joker) {
+            ta = @intFromEnum(a.hand.hand_type_with_joker);
+            tb = @intFromEnum(b.hand.hand_type_with_joker);
+        } else {
+            ta = @intFromEnum(a.hand.hand_type);
+            tb = @intFromEnum(b.hand.hand_type);
+        }
         if (ta < tb)
             return true;
         if (ta > tb)
             return false;
 
         for (a.hand.cards, b.hand.cards) |ca, cb| {
-            const va = ca.getValue();
-            const vb = cb.getValue();
+            const va = ca.getValue(with_joker);
+            const vb = cb.getValue(with_joker);
             if (va < vb)
                 return true;
             if (va > vb)
@@ -146,13 +178,13 @@ pub fn main() !void {
         }
         const hand_cards = try allocator.dupe(Card, &cards);
         // oh well, we're leaking memory
-        const hand = Hand{ .cards = hand_cards, .handType = HandType.fromCards(&cards) };
+        const hand = Hand{ .cards = hand_cards, .hand_type = HandType.fromCards(&cards, false), .hand_type_with_joker = HandType.fromCards(&cards, true) };
         std.debug.print("{any}\n", .{hand});
         const bid = try std.fmt.parseInt(u10, line_iter.next().?, 10);
         try plays.append(Play{ .hand = hand, .bid = bid });
     }
 
-    std.mem.sort(Play, plays.items, {}, Play.cmp);
+    std.mem.sort(Play, plays.items, false, Play.cmp);
 
     var total_winnings: u32 = 0;
     for (plays.items, 1..) |play, rank| {
@@ -160,6 +192,15 @@ pub fn main() !void {
         total_winnings += @as(u32, @intCast(rank)) * play.bid;
     }
 
+    std.mem.sort(Play, plays.items, true, Play.cmp);
+
+    var total_winnings_with_joker: u32 = 0;
+    for (plays.items, 1..) |play, rank| {
+        std.debug.print("{any}\n", .{play.hand});
+        total_winnings_with_joker += @as(u32, @intCast(rank)) * play.bid;
+    }
+
     var stdout = std.io.getStdOut();
     try stdout.writer().print("{d}\n", .{total_winnings});
+    try stdout.writer().print("{d}\n", .{total_winnings_with_joker});
 }
