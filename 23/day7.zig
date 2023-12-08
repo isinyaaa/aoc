@@ -1,27 +1,44 @@
 const std = @import("std");
 
-// fn help(name: []const u8) !void {
-//     std.debug.print("usage: {s}\n", .{name});
-//     std.process.exit(1);
-// }
-
-const Card = struct {
-    value: u4,
-    pub fn fromChar(c: u8) Card {
-        const value: u4 = switch (c) {
-            '0'...'9' => @as(u4, @intCast(c - '0')),
-            'T' => 10,
-            'J' => 11,
-            'Q' => 12,
-            'K' => 13,
-            'A' => 14,
+const LabelType = enum(u4) {
+    Number,
+    Ten = 10,
+    Joker = 11,
+    Queen,
+    King,
+    Ace,
+    pub fn fromChar(c: u8) LabelType {
+        return switch (c) {
+            '0'...'9' => .Number,
+            'T' => .Ten,
+            'J' => .Joker,
+            'Q' => .Queen,
+            'K' => .King,
+            'A' => .Ace,
             else => unreachable,
-        } - 1; // as there's no 1 in the deck, we shift the range down
+        };
+    }
+};
+
+const Card = union(enum) {
+    value: u4,
+    joker: void,
+    pub fn fromChar(c: u8) Card {
+        const label = LabelType.fromChar(c);
+        if (label == LabelType.Joker)
+            return Card{ .joker = {} };
+        const value = switch (label) {
+            .Number => @as(u4, @intCast(c - '0')),
+            .Joker => unreachable,
+            else => @intFromEnum(label),
+        };
         return Card{ .value = value };
     }
-    pub fn cmp(ctx: void, a: Card, b: Card) bool {
-        _ = ctx;
-        return a.value < b.value;
+    pub fn getValue(self: Card) u4 {
+        return switch (self) {
+            .value => self.value,
+            .joker => 11,
+        };
     }
 };
 
@@ -39,9 +56,10 @@ const HandType = enum(u3) {
         for (cards[0..4], 0..) |c, i| {
             if (counted[i])
                 continue;
+            const v = c.getValue();
             var j = i + 1;
             while (j < 5) : (j += 1) {
-                if (c.value == cards[j].value) {
+                if (v == cards[j].getValue()) {
                     max[i] += 1;
                     counted[j] = true;
                 }
@@ -52,23 +70,23 @@ const HandType = enum(u3) {
         std.debug.print("{any}\n", .{max});
 
         switch (max[0]) {
-            5 => return HandType.five_of_a_kind,
-            4 => return HandType.four_of_a_kind,
+            5 => return .five_of_a_kind,
+            4 => return .four_of_a_kind,
             3 => {
                 switch (max[1]) {
-                    2 => return HandType.full_house,
-                    1 => return HandType.three_of_a_kind,
+                    2 => return .full_house,
+                    1 => return .three_of_a_kind,
                     else => unreachable,
                 }
             },
             2 => {
                 switch (max[1]) {
-                    2 => return HandType.two_pairs,
-                    1 => return HandType.one_pair,
+                    2 => return .two_pairs,
+                    1 => return .one_pair,
                     else => unreachable,
                 }
             },
-            1 => return HandType.high_card,
+            1 => return .high_card,
             else => unreachable,
         }
     }
@@ -92,9 +110,11 @@ const Play = struct {
             return false;
 
         for (a.hand.cards, b.hand.cards) |ca, cb| {
-            if (ca.value < cb.value)
+            const va = ca.getValue();
+            const vb = cb.getValue();
+            if (va < vb)
                 return true;
-            if (ca.value > cb.value)
+            if (va > vb)
                 return false;
         }
         unreachable;
