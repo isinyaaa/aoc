@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import cache
 from enum import Enum
 from pprint import pprint
 import re
@@ -14,7 +15,8 @@ def next_state(record: str) -> int:
     return next((i for i, t in enumerate(record) if t != record[0]), 0)
 
 
-def count_arr(record: str, sizes: list[int]) -> int:
+@cache
+def count_arr(record: str, sizes: tuple[int]) -> int:
     # breakpoint()
     print(record, sizes)
     if not sizes:
@@ -75,15 +77,26 @@ def count_arr(record: str, sizes: list[int]) -> int:
             return 0
 
 
+def unfold(record, sizes):
+    return ("?".join([record] * 5), sizes * 5)
+
+
+lines = open("day12.in").readlines()
+
 arrangements = 0
-for line in open("day12.in").readlines():
+unfolded_arr = 0
+for line in lines:
     record, raw_sizes = line.split()
-    record = re.sub(r"\.+", ".", record).strip(".")
-    sizes = list(map(int, raw_sizes.split(",")))
-    cnt = count_arr(record, sizes)
+    record = re.sub(r"\.+", ".", record)
+    sizes = tuple(map(int, raw_sizes.split(",")))
+    cnt = count_arr(record.strip("."), sizes)
     arrangements += cnt
     print(cnt)
+    unf = count_arr(*unfold(record, sizes))
+    unfolded_arr += unf
+    print(unf)
     print()
 
 
 print(arrangements)
+print(unfolded_arr)
