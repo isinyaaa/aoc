@@ -1,34 +1,72 @@
 from pathlib import Path
 
-disk = [int(c) for c in Path("day9.in").read_text().strip()]
+raw = [int(c) for c in Path("day9.example.in").read_text().strip()]
 
-blocks, gaps = disk[2::2], disk[1::2]
-
-dmap = [
-    i // 2 + 1 if i % 2 != 0 else 0
-    for i, c in enumerate(disk[1::])
-    for _ in range(int(c))
+disk = [
+    (i + 1) // 2 if i % 2 != 0 else 0 for i, c in enumerate(raw[1:]) for _ in range(c)
 ]
-disk = disk[::-1]
 
-maxid = len(blocks)  # we're already skipping 1
+size = len(disk)
 
-lp = disk[-1]
-lg = 0
-gappos = 0
-bid = 0
-for i, b in enumerate(reversed(blocks)):
-    bid = maxid - i
-    rp = 0
-    while bid - lg > 0 and lg < len(gaps) and rp < b:
-        if (gaps[lg] - gappos) == 0:
-            lp += gaps[lg] + blocks[lg]
-            lg += 1
-            gappos = 0
+ld = 0
+for i in range(size - 1, 1, -1):
+    if disk[i] == 0:
+        continue
+
+    while ld < size and ld < i:
+        if disk[ld] == 0:
+            disk[ld], disk[i] = disk[i], disk[ld]
+            break
+        ld += 1
+
+print(sum([(i + raw[0]) * e for i, e in enumerate(disk)]))
+
+blocks, gaps = raw[2::2], raw[1::2]
+disk = [
+    (i + 1) // 2 if i % 2 != 0 else 0 for i, c in enumerate(raw[1:]) for _ in range(c)
+]
+
+
+def defrag(block, size):
+    ld = 0
+    g = 0
+    while gaps[g] == 0:
+        g += 1
+    while g < gaps[g] and ld < len(disk):
+        if disk[ld] == 0 and gaps[g] >= size:
+            gaps[g] -= size
+            while size > 0:
+                disk[ld] = block
+                ld += 1
+                size -= 1
+            while ld < len(disk) and disk[ld] != block:
+                ld += 1
+            while ld < len(disk) and disk[ld] == block:
+                disk[ld] = 0
+                ld += 1
+            break
+        if gaps[g] == 0:
+            while gaps[g] == 0:
+                g += 1
         else:
-            dmap[gappos + lp - disk[-1]] = bid
-            dmap[len(dmap) - 1 - sum(disk[: 2 * i]) - rp] = 0
-            gappos += 1
-            rp += 1
+            g += 1
+        while ld < len(disk) and disk[ld] == 0:
+            ld += 1
 
-print(sum((i + disk[-1]) * e for i, e in enumerate(dmap)))
+
+for i in range(len(blocks)):
+    defrag(len(blocks) - i, blocks[len(blocks) - i - 1])
+
+
+# ld = 0
+# for i in range(size - 1, 1, -1):
+#     if disk[i] == 0:
+#         continue
+#
+#     while ld < size and ld < i:
+#         if disk[ld] == 0:
+#             disk[ld], disk[i] = disk[i], disk[ld]
+#             break
+#         ld += 1
+
+print(sum([(i + int(raw[0])) * e for i, e in enumerate(disk)]))
